@@ -1,0 +1,108 @@
+import cv2
+# import numpy
+import numpy as np
+from matplotlib import pyplot as plt
+import imutils
+import easyocr
+img=cv2.imread("abc.jpg")
+gray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+# gray=cv2.cvtColor(gray,cv2.COLOR_BGR2RGB)
+bfilter=cv2.bilateralFilter(gray,17,11,11)
+edged=cv2.Canny(bfilter,30,200)
+keypoints=cv2.findContours(edged.copy(),cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
+contours=imutils.grab_contours(keypoints)
+contours=sorted(contours,key=cv2.contourArea,reverse=True)[:20]
+location=None
+for contour in contours:
+    approx=cv2.approxPolyDP(contour,10,True)
+    if len(approx)== 4 :
+        location=approx
+        break
+# print(location)
+mask=np.zeros(gray.shape,np.uint8)
+new_image=cv2.drawContours(mask,[location],0,255,-1)
+new_image=cv2.bitwise_and(img, img, mask=mask)
+(x,y)=np.where(mask ==255)
+(x1,y1)=(np.min(x),np.min(y))
+(x2,y2)=(np.max(x),np.max(y))
+cropped_image=gray[x1:x2+1,y1:y2+1]
+reader = easyocr.Reader(['en'])
+res = reader.readtext(cropped_image,detail=0,paragraph=True)
+# cv2.imshow("image",cropped_image)
+# # print(res)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+if len(res) == 0:
+    res = reader.readtext(img, detail=0, paragraph=True)
+print(res)
+
+st=''
+dist=''
+k=0
+import pymysql
+
+mypass = "Tweety@123#"
+mydatabase="rto"
+
+con = pymysql.connect(host="localhost",user="root", password=mypass,database=mydatabase)
+cur = con.cursor()
+name='v_no'
+# print(len(res))
+b=''
+for i in res:
+    b=b+i
+# print(b)
+if 'INDIA' in b:
+    b = b.replace('INDIA', "")
+if 'IND' in b:
+    b = b.replace('IND', "")
+
+
+stb=list(filter(str.isalnum,b))
+# print(stb)
+# c=''
+# for i in stb:
+#     c=c+i
+# print(res,"$")
+# print(c)
+# num=''
+# if (len(c)==10):
+#     st=c[:2]
+#     dist=c[2:4]
+#     num=stb[4:]
+# print(st,dist,num)
+z=''
+for i in stb:
+    z=z+i
+# print(z)
+st=z[:2]
+dist=z[2:4]
+num=z[4:]
+if(st.isalpha() and dist.isnumeric() and len(num)==6):
+    pass
+else:
+    print("Please scan again")
+d='v_no'
+get_vno="select name, mobileno from "+d+" where vno = '"+z+"'"
+try:
+    cur.execute(get_vno)
+    con.commit()
+    t=cur.fetchall()
+    # print(t)
+    i=t[0]
+    b=str(i[1])
+except:
+    print("Error")
+print(b)
+import requests
+
+url = "https://www.fast2sms.com/dev/bulkV2"
+
+payload = "message=your%20vehicle%20is%20towed%20Kindly%20collect%20at%20respective%20centre&language=english&route=p&numbers="+b
+headers = {
+    'authorization': "0fIyvVVtdB9seDfWTrHvt6b47KyXNFEynTXWFkXNoCmFAmlg1jgVcg77TC8W",
+    'Content-Type': "application/x-www-form-urlencoded",
+    'Cache-Control': "no-cache",
+    }
+
+response = requests.request("POST", url, data=payload, headers=headers)
